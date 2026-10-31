@@ -35,7 +35,7 @@ Works offline once loaded. Optimized for iPad and iPhone (portrait and landscape
 
 ## Files
 
-- `tip-joke.html` — the entire app (single file, no dependencies)
+- `index.html` — the entire app (single file, no dependencies)
 
 ## License
 
