@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Tip & Sign</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --accent: #007aff;
+    --accent-hover: #0051d5;
+    --success: #34c759;
+    --border: #d1d1d6;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    height: 100dvh;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+  #app {
+    height: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 8px) env(safe-area-inset-left);
+  }
+  .screen {
+    display: none;
+    width: 100%;
+    max-width: 820px;
+    height: 100%;
+    max-height: 100%;
+    flex-direction: column;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+  .screen.active { display: flex; }
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+  .sub {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 15px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .bill-box {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px 20px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .bill-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 2px; }
+  .bill-amount { 
+    font-size: 36px; 
+    font-weight: 700; 
+    letter-spacing: -0.5px; 
+    cursor: pointer;
+    user-select: none;
+  }
+  .bill-amount.editing {
+    background: #f0f0f5;
+    border-radius: 8px;
+    padding: 4px 12px;
+  }
+  .tips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex: 1;
+    align-content: start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tip-btn {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 10px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 76px;
+  }
+  .tip-btn:active { transform: scale(0.97); }
+  .tip-btn .pct { font-size: 22px; }
+  .tip-btn .amt { font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-top: 2px; }
+  .tip-btn.selected {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .tip-btn.selected .amt { color: rgba(255,255,255,0.85); }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+  .btn {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .btn.primary:disabled {
+    background: #c7c7cc;
+    border-color: #c7c7cc;
+    cursor: not-allowed;
+  }
+  .btn.secondary { color: var(--accent); }
+  .custom-input-wrap {
+    margin-top: 8px;
+    display: none;
+  }
+  .custom-input-wrap.show { display: block; }
+  input[type="number"] {
+    width: 100%;
+    padding: 18px;
+    font-size: 22px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    text-align: center;
+    background: var(--card);
+  }
+  /* Signature screen */
+  .sig-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .sig-total { font-size: 32px; font-weight: 700; }
+  .canvas-wrap {
+    flex: 1;
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    min-height: 280px;
+  }
+  #sigCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .sig-line {
+    position: absolute;
+    bottom: 70px;
+    left: 40px;
+    right: 40px;
+    height: 1px;
+    background: #c7c7cc;
+    pointer-events: none;
+  }
+  .sig-agree {
+    position: absolute;
+    bottom: 28px;
+    left: 24px;
+    right: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    pointer-events: none;
+  }
+  .sig-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-shrink: 0;
+  }
+  .sig-actions .btn { flex: 1; }
+  /* Processing */
+  #processing {
+    position: fixed;
+    inset: 0;
+    background: rgba(245,245,247,0.96);
+    backdrop-filter: blur(12px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  #processing.show { display: flex; }
+  .spinner {
+    width: 64px;
+    height: 64px;
+    border: 5px solid #e5e5ea;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    margin-bottom: 28px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .proc-text {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .proc-sub {
+    color: var(--text-secondary);
+    font-size: 17px;
+    text-align: center;
+    max-width: 320px;
+  }
+  .joke-counter {
+    margin-top: 24px;
+    font-size: 14px;
+    color: #aeaeb2;
+  }
+
+  /* Landscape only */
+  @media (orientation: landscape) {
+    .screen {
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    }
+    h1 { font-size: 20px; margin-bottom: 2px; }
+    .sub { font-size: 13px; margin-bottom: 8px; }
+    .bill-box {
+      padding: 8px 14px;
+      margin-bottom: 8px;
+    }
+    .bill-amount { font-size: 28px; }
+    .tips {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .tip-btn {
+      padding: 10px 6px;
+      min-height: 64px;
+      font-size: 15px;
+    }
+    .tip-btn .pct { font-size: 18px; }
+    .tip-btn .amt { font-size: 12px; }
+    .row { gap: 8px; }
+    .btn { padding: 10px; font-size: 15px; }
+    .sig-header { margin-bottom: 6px; }
+    .sig-total { font-size: 24px; }
+    .canvas-wrap { min-height: 140px; }
+    .sig-actions { margin-top: 8px; }
+    .sig-line { bottom: 48px; }
+    .sig-agree { bottom: 12px; font-size: 11px; }
+  }
+
+  /* Small portrait phones */
+  @media (max-height: 750px) and (orientation: portrait) {
+    .screen {
+      padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    }
+    h1 { font-size: 22px; margin-bottom: 2px; }
+    .sub { font-size: 13px; margin-bottom: 8px; }
+    .bill-box {
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .bill-amount { font-size: 32px; }
+    .tips {
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .tip-btn {
+      padding: 10px 6px;
+      min-height: 64px;
+      font-size: 16px;
+    }
+    .tip-btn .pct { font-size: 18px; }
+    .tip-btn .amt { font-size: 12px; }
+    .btn { padding: 12px 8px; font-size: 16px; }
+    .row { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Tip Screen -->
+  <div id="tipScreen" class="screen active">
+    <h1>Add a Tip</h1>
+    <div class="sub">Select a tip amount</div>
+    <div class="bill-box">
+      <div class="bill-label">Bill Total</div>
+      <div class="bill-amount" id="billDisplay">$47.82</div>
+    </div>
+    <div class="tips" id="tipGrid"></div>
+    <div class="custom-input-wrap" id="customWrap">
+      <input type="number" id="customInput" placeholder="Enter custom tip" min="0" step="0.01">
+    </div>
+    <div class="row">
+      <button class="btn secondary" id="noTipBtn">No Tip</button>
+      <button class="btn primary" id="continueBtn" disabled>Continue</button>
+    </div>
+  </div>
+
+  <!-- Signature Screen -->
+  <div id="sigScreen" class="screen">
+    <div class="sig-header">
+      <div>
+        <div style="font-size:15px;color:var(--text-secondary);">Total with tip</div>
+        <div class="sig-total" id="sigTotal">$54.99</div>
+      </div>
+      <button class="btn secondary" id="backBtn" style="padding:12px 18px;">Back</button>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="sigCanvas"></canvas>
+      <div class="sig-line"></div>
+      <div class="sig-agree">I agree to pay the above total amount according to my card issuer agreement.</div>
+    </div>
+    <div class="sig-actions">
+      <button class="btn" id="clearBtn">Clear</button>
+      <button class="btn primary" id="doneBtn" disabled>Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Processing overlay (never ends) -->
+<div id="processing">
+  <div class="spinner"></div>
+  <div class="proc-text" id="procText">Authorizing payment…</div>
+  <div class="proc-sub" id="procSub">Please wait while we process your transaction.</div>
+  <div class="joke-counter" id="jokeCounter"></div>
+  <button class="btn secondary" id="restartBtn" style="margin-top:20px; display:none; padding:14px 28px;">Try Again</button>
+</div>
+
+<script>
+let billBase = 47.82;
+let tipAmount = 0;
+let hasSigned = false;
+let processingStart = 0;
+let jokeInterval = null;
+
+const tipScreen = document.getElementById('tipScreen');
+const sigScreen = document.getElementById('sigScreen');
+const tipGrid = document.getElementById('tipGrid');
+const continueBtn = document.getElementById('continueBtn');
+const noTipBtn = document.getElementById('noTipBtn');
+const customWrap = document.getElementById('customWrap');
+const customInput = document.getElementById('customInput');
+const sigTotalEl = document.getElementById('sigTotal');
+const doneBtn = document.getElementById('doneBtn');
+const clearBtn = document.getElementById('clearBtn');
+const backBtn = document.getElementById('backBtn');
+const processing = document.getElementById('processing');
+const procText = document.getElementById('procText');
+const procSub = document.getElementById('procSub');
+const jokeCounter = document.getElementById('jokeCounter');
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+
+const percentages = [15, 18, 20, 25];
+
+function formatMoney(n) {
+  return '$' + n.toFixed(2);
+}
+
+function renderTips() {
+  tipGrid.innerHTML = '';
+  percentages.forEach(p => {
+    const amt = billBase * (p / 100);
+    const btn = document.createElement('button');
+    btn.className = 'tip-btn';
+    btn.innerHTML = `<div class="pct">${p}%</div><div class="amt">${formatMoney(amt)}</div>`;
+    btn.onclick = () => selectTip(amt, btn);
+    tipGrid.appendChild(btn);
+  });
+  // Custom button
+  const customBtn = document.createElement('button');
+  customBtn.className = 'tip-btn';
+  customBtn.style.gridColumn = '1 / -1';
+  customBtn.innerHTML = `<div class="pct">Custom</div><div class="amt">Enter amount</div>`;
+  customBtn.onclick = () => {
+    document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('selected'));
+    customBtn.classList.add('selected');
+    customWrap.classList.add('show');
+    customInput.focus();
+    tipAmount = 0;
+    updateContinue();
+  };
+  tipGrid.appendChild(customBtn);
+}
+
+function selectTip(amt, btn) {
+  tipAmount = amt;
+  document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  customWrap.classList.remove('show');
+  customInput.value = '';
+  updateContinue();
+}
+
+function updateContinue() {
+  continueBtn.disabled = tipAmount < 0;
+}
+
+customInput.addEventListener('input', () => {
+  const v = parseFloat(customInput.value);
+  tipAmount = isNaN(v) ? 0 : Math.max(0, v);
+  updateContinue();
+});
+
+noTipBtn.onclick = () => {
+  tipAmount = 0;
+  goToSignature();
+};
+
+continueBtn.onclick = () => {
+  if (tipAmount >= 0) goToSignature();
+};
+
+function goToSignature() {
+  const total = billBase + tipAmount;
+  sigTotalEl.textContent = formatMoney(total);
+  tipScreen.classList.remove('active');
+  sigScreen.classList.add('active');
+  setTimeout(resizeCanvas, 50);
+  hasSigned = false;
+  doneBtn.disabled = true;
+  clearCanvas();
+}
+
+backBtn.onclick = () => {
+  sigScreen.classList.remove('active');
+  tipScreen.classList.add('active');
+};
+
+// Signature canvas
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = wrap.clientWidth * dpr;
+  canvas.height = wrap.clientHeight * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#1d1d1f';
+  clearCanvas();
+}
+
+function clearCanvas() {
+  const wrap = canvas.parentElement;
+  ctx.clearRect(0, 0, wrap.clientWidth, wrap.clientHeight);
+  hasSigned = false;
+  doneBtn.disabled = true;
+}
+
+let drawing = false;
+let lastX = 0, lastY = 0;
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top
+  };
+}
+
+function startDraw(e) {
+  e.preventDefault();
+  drawing = true;
+  const pos = getPos(e);
+  lastX = pos.x;
+  lastY = pos.y;
+  hasSigned = true;
+  doneBtn.disabled = false;
+}
+
+function draw(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  lastX = pos.x;
+  lastY = pos.y;
+}
+
+function endDraw(e) {
+  if (drawing) {
+    drawing = false;
+  }
+}
+
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', endDraw);
+canvas.addEventListener('mouseleave', endDraw);
+canvas.addEventListener('touchstart', startDraw, { passive: false });
+canvas.addEventListener('touchmove', draw, { passive: false });
+canvas.addEventListener('touchend', endDraw);
+
+clearBtn.onclick = clearCanvas;
+
+doneBtn.onclick = () => {
+  if (!hasSigned) return;
+  startProcessing();
+};
+
+function startProcessing() {
+  processing.classList.add('show');
+  processingStart = Date.now();
+  procText.textContent = 'Authorizing payment…';
+  procSub.textContent = 'Please wait while we process your transaction.';
+  jokeCounter.textContent = '';
+
+  if (jokeInterval) clearInterval(jokeInterval);
+  jokeInterval = setInterval(updateJoke, 3000);
+  updateJoke();
+}
+
+function updateJoke() {
+  const secs = Math.floor((Date.now() - processingStart) / 1000);
+  jokeCounter.textContent = `Processing for ${secs} seconds…`;
+
+  if (secs >= 8 && secs < 18) {
+    procText.textContent = 'Still authorizing…';
+    procSub.textContent = 'This is taking a bit longer than usual.';
+  } else if (secs >= 18 && secs < 35) {
+    procText.textContent = 'Contacting bank…';
+    procSub.textContent = 'Your bank is being unusually slow today.';
+  } else if (secs >= 35 && secs < 60) {
+    procText.textContent = 'Almost there…';
+    procSub.textContent = 'Just a few more moments. Definitely.';
+  } else if (secs >= 60 && secs < 120) {
+    procText.textContent = 'Still working on it…';
+    procSub.textContent = 'Your patience is noted and will be reflected in future tip suggestions.';
+  } else if (secs >= 120) {
+    procText.textContent = 'Authorizing… forever';
+    procSub.textContent = 'This transaction is in a quantum state. It both has and has not completed.';
+    document.getElementById('restartBtn').style.display = 'block';
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (sigScreen.classList.contains('active')) resizeCanvas();
+});
+
+// Init
+renderTips();
+document.getElementById('billDisplay').textContent = formatMoney(billBase);
+
+// Editable bill total (double-tap)
+const billDisplay = document.getElementById('billDisplay');
+let lastTap = 0;
+
+function startEditBill() {
+  if (billDisplay.querySelector('input')) return; // already editing
+  
+  const current = billBase.toFixed(2);
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.value = current;
+  input.step = '0.01';
+  input.min = '0';
+  input.style.cssText = `
+    width: 180px;
+    font-size: 42px;
+    font-weight: 700;
+    text-align: center;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-family: inherit;
+    color: inherit;
+    letter-spacing: -0.5px;
+  `;
+  
+  billDisplay.classList.add('editing');
+  billDisplay.textContent = '';
+  billDisplay.appendChild(input);
+  input.focus();
+  input.select();
+  
+  const finish = () => {
+    let val = parseFloat(input.value);
+    if (isNaN(val) || val < 0) val = billBase;
+    billBase = Math.round(val * 100) / 100;
+    billDisplay.classList.remove('editing');
+    billDisplay.textContent = formatMoney(billBase);
+    renderTips();
+    // Clear any previous tip selection
+    tipAmount = 0;
+    continueBtn.disabled = true;
+    customWrap.classList.remove('show');
+    customInput.value = '';
+  };
+  
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      input.blur();
+    } else if (e.key === 'Escape') {
+      input.value = current;
+      input.blur();
+    }
+  });
+}
+
+billDisplay.addEventListener('dblclick', startEditBill);
+
+// Double-tap support for mobile/iPad
+billDisplay.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    e.preventDefault();
+    startEditBill();
+  }
+  lastTap = now;
+});
+
+document.getElementById('restartBtn').onclick = () => {
+  processing.classList.remove('show');
+  document.getElementById('restartBtn').style.display = 'none';
+  if (jokeInterval) clearInterval(jokeInterval);
+  sigScreen.classList.remove('active');
+  tipScreen.classList.add('active');
+  // Reset tip selection
+  document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('selected'));
+  customWrap.classList.remove('show');
+  customInput.value = '';
+  tipAmount = 0;
+  continueBtn.disabled = true;
+};
+</script>
+</body>
+</html>
