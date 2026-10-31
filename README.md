@@ -15,7 +15,7 @@ Built for a Halloween costume where I dressed as a server and handed people an i
 
 ## How to use
 
-1. Open `tip-joke.html` on an iPad or iPhone (or host it somewhere)
+1. Open `index.html` on an iPad or iPhone (or host it somewhere)
 2. In Safari: Share → Add to Home Screen for a more app-like feel
 3. Hand it to someone and watch them try to tip
 
